@@ -1,0 +1,16 @@
+
+
+run:
+	uv run fastapi dev
+
+
+lint:
+	uv run ruff check . --exclude packages/dlt_plus/dlt_plus/transformations/dataframes/templates
+	uv run ruff format --check . --exclude packages/dlt_plus/dlt_plus/transformations/dataframes/templates
+
+format:
+	uv run ruff format . --exclude packages/dlt_plus/dlt_plus/transformations/dataframes/templates
+
+
+test:
+	uv run pytest
