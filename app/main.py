@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import uvicorn
 
 from app import routers
 
@@ -15,3 +16,6 @@ app.include_router(routers.store_router)
 @app.get("/")
 async def root():
     return {"message": "FastAPI Jaffle Shop!"}
+
+
+

@@ -6,7 +6,13 @@
 uv sync
 ```
 
-## Run
+## Run dev with reload
+
+```bash
+make run-dev
+```
+
+## Run uvicorn
 
 ```bash
 make run
