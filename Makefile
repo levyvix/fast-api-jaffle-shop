@@ -14,3 +14,7 @@ format:
 
 test:
 	uv run pytest
+
+freeze-requirements:
+	uv sync --no-dev
+	uv pip freeze > requirements.txt
