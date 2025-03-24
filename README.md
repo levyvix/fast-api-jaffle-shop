@@ -4,11 +4,9 @@ This is a FastAPI version of the dbt jaffle shop project. The jaffle shop datase
 
 When the API is running, docs are available at /docs. For all entities, there are collection and single entity endpoints to retrieve the data. The collection endpoints are paginated and have a limit of 100 items. The link to the next page is returned in the response headers. The orders endpoint includes the order items nested inside each order object.
 
-## Setup
+## Requirements
 
-```bash
-uv sync
-```
+This project requires python 3.10+ and uv to be installed.
 
 ## Run dev with reload
 
@@ -28,6 +26,10 @@ make run
 /app - FastAPI app
 /seed - Seed data as csv files from dbt jaffle shop project
 ```
+
+## Deployment
+
+This app is currently deployed to the dlthub digital ocean app platform. Pushes to the main branch will result in a deployment. Please run `make freeze-requirements` to update the requirements.txt file from the uv lockfile, as that is what Digital Ocean uses to install the dependencies.
 
 ## Example dlt rest api source to sync orders from january 2017 and all other entities fully
 

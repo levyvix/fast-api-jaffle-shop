@@ -123,7 +123,7 @@ def test_live_jaffle_shop():
             ],
         },
     )
-    
+
     pipeline = dlt.pipeline(
         pipeline_name="rest_api_example",
         destination=duckdb(credentials="test.db"),
