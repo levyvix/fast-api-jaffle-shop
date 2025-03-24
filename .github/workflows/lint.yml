@@ -49,9 +49,6 @@ jobs:
         with:
           uv-venv: ".venv"
 
-      - name: Install dependencies
-        run: make dev
-
       - name: Run make lint
         run: make lint
 

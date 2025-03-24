@@ -1,7 +1,8 @@
 import duckdb
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("fastapi")
+
 
 POPULATED_DB: duckdb.DuckDBPyConnection | None = None
 
@@ -9,6 +10,7 @@ POPULATED_DB: duckdb.DuckDBPyConnection | None = None
 def get_db() -> duckdb.DuckDBPyConnection:
     """Create in memory duckdb database from seed csv files"""
     global POPULATED_DB
+
     if POPULATED_DB is None:
         db = duckdb.connect(database=":memory:")
         db.sql(

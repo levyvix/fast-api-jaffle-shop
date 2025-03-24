@@ -3,11 +3,11 @@ All jaffle shop routers
 """
 
 import duckdb
-
-from fastapi import APIRouter, Depends, Response
+from urllib.parse import urlencode
+from fastapi import APIRouter, Depends, Response, Request
 
 from app.db import get_db
-from app.const import PAGE_SIZE, BASE_URL
+from app.const import PAGE_SIZE
 
 # defined routers
 customers_router = APIRouter(tags=["customers"])
@@ -29,6 +29,7 @@ def _get_list_response(db: duckdb.DuckDBPyConnection, query: str):
 
 def _get_paged_response(
     db: duckdb.DuckDBPyConnection,
+    request: Request,
     table_name: str,
     page: int = 1,
     response: Response = None,
@@ -42,12 +43,19 @@ def _get_paged_response(
 
     offset = (page - 1) * PAGE_SIZE
     last_item = offset + PAGE_SIZE
-    count = db.sql(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+    count = db.query(f"SELECT COUNT(*) FROM {table_name} {where_clause}").fetchone()[0]
 
-    url = f"{BASE_URL}/{table_name}"
+    # get base url from request
+    # forwarded_host = request.headers.get(
+    #     "X-Forwarded-Host", request.headers.get("Host")
+    # )
+    # scheme = request.headers.get("X-Forwarded-Proto", "http")
+
+    url = f"/{table_name}"
+    query_params = dict(request.query_params)
     if last_item < count and response:
-        next_page = page + 1
-        next_link = f'<{url}?page={next_page}>; rel="next"'
+        query_params["page"] = page + 1
+        next_link = f'<{url}?{urlencode(query_params)}>; rel="next"'
         response.headers["Link"] = next_link
 
     return _get_list_response(
@@ -74,9 +82,10 @@ def _get_single_response(db: duckdb.DuckDBPyConnection, query: str):
 async def get_customers(
     page: int = 1,
     response: Response = None,
+    request: Request = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    return _get_paged_response(db, "customers", page, response)
+    return _get_paged_response(db, request, "customers", page, response)
 
 
 @customers_router.get("/customers/{customer_id}")
@@ -110,6 +119,7 @@ async def get_orders(
     start_date: str = None,
     end_date: str = None,
     response: Response = None,
+    request: Request = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
     where_clause = ""
@@ -120,7 +130,9 @@ async def get_orders(
     if where_clause:
         where_clause = f"WHERE {where_clause[5:]}"
     sort_by = "ORDER BY ordered_at ASC"
-    orders = _get_paged_response(db, "orders", page, response, where_clause, sort_by)
+    orders = _get_paged_response(
+        db, request, "orders", page, response, where_clause, sort_by
+    )
     return _enrich_orders(db, orders)
 
 
@@ -136,9 +148,10 @@ async def get_order(order_id: str, db: duckdb.DuckDBPyConnection = Depends(get_d
 async def get_items(
     page: int = 1,
     response: Response = None,
+    request: Request = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    return _get_paged_response(db, "items", page, response)
+    return _get_paged_response(db, request, "items", page, response)
 
 
 @item_router.get("/items/{item_id}")
@@ -153,9 +166,10 @@ async def get_item(item_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 async def get_products(
     page: int = 1,
     response: Response = None,
+    request: Request = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    return _get_paged_response(db, "products", page, response)
+    return _get_paged_response(db, request, "products", page, response)
 
 
 @product_router.get("/products/{sku}")
@@ -170,9 +184,10 @@ async def get_product(sku: str, db: duckdb.DuckDBPyConnection = Depends(get_db))
 async def get_stores(
     page: int = 1,
     response: Response = None,
+    request: Request = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    return _get_paged_response(db, "stores", page, response)
+    return _get_paged_response(db, request, "stores", page, response)
 
 
 @store_router.get("/stores/{store_id}")
@@ -187,9 +202,10 @@ async def get_store(store_id: str, db: duckdb.DuckDBPyConnection = Depends(get_d
 async def get_supplies(
     page: int = 1,
     response: Response = None,
+    request: Request = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    return _get_paged_response(db, "supplies", page, response)
+    return _get_paged_response(db, request, "supplies", page, response)
 
 
 @supplies_router.get("/supplies/{supply_id}")
