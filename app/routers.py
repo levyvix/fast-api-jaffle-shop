@@ -18,8 +18,22 @@ supplies_router = APIRouter(tags=["supplies"])
 store_router = APIRouter(tags=["stores"])
 
 
+def _get_list_response(db: duckdb.DuckDBPyConnection, query: str):
+    """
+    Get a list response from a collection endpoint
+    """
+    cursor = db.sql(query)
+    column_names = [desc[0] for desc in cursor.description]
+    return [dict(zip(column_names, row)) for row in cursor.fetchall()]
+
+
 def _get_paged_response(
-    db: duckdb.DuckDBPyConnection, table_name: str, page: int, response: Response
+    db: duckdb.DuckDBPyConnection,
+    table_name: str,
+    page: int = 1,
+    response: Response = None,
+    where_clause: str = "",
+    sort_by: str = "",
 ):
     """
     Get a paged response from a collection endpoint
@@ -31,14 +45,15 @@ def _get_paged_response(
     count = db.sql(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
 
     url = f"{BASE_URL}/{table_name}"
-    if last_item < count:
+    if last_item < count and response:
         next_page = page + 1
         next_link = f'<{url}?page={next_page}>; rel="next"'
         response.headers["Link"] = next_link
 
-    cursor = db.sql(f"SELECT * FROM {table_name} LIMIT {PAGE_SIZE} OFFSET {offset}")
-    column_names = [desc[0] for desc in cursor.description]
-    return [dict(zip(column_names, row)) for row in cursor.fetchall()]
+    return _get_list_response(
+        db,
+        f"SELECT * FROM {table_name} {where_clause} {sort_by} LIMIT {PAGE_SIZE} OFFSET {offset}",
+    )
 
 
 def _get_single_response(db: duckdb.DuckDBPyConnection, query: str):
@@ -53,10 +68,6 @@ def _get_single_response(db: duckdb.DuckDBPyConnection, query: str):
 #
 # Customers
 #
-CUSTOMER_COLUMNS = [
-    "id",
-    "name",
-]
 
 
 @customers_router.get("/customers")
@@ -80,13 +91,37 @@ async def get_customer(
 #
 # Orders
 #
+
+
+def _enrich_orders(db: duckdb.DuckDBPyConnection, orders: list[dict]):
+    """
+    Enrich orders with list of items
+    """
+    for order in orders:
+        order["items"] = _get_list_response(
+            db, f"SELECT * FROM items WHERE order_id = '{order['id']}'"
+        )
+    return orders
+
+
 @orders_router.get("/orders")
 async def get_orders(
     page: int = 1,
+    start_date: str = None,
+    end_date: str = None,
     response: Response = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    return _get_paged_response(db, "orders", page, response)
+    where_clause = ""
+    if start_date:
+        where_clause += f" AND ordered_at >= '{start_date}'"
+    if end_date:
+        where_clause += f" AND ordered_at <= '{end_date}'"
+    if where_clause:
+        where_clause = f"WHERE {where_clause[5:]}"
+    sort_by = "ORDER BY ordered_at ASC"
+    orders = _get_paged_response(db, "orders", page, response, where_clause, sort_by)
+    return _enrich_orders(db, orders)
 
 
 @orders_router.get("/orders/{order_id}")

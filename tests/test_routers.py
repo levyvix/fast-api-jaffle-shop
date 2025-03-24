@@ -58,6 +58,33 @@ def test_orders_router():
     # simple item test
     first_item = response.json()[0]
     response = client.get(f"/orders/{first_item['id']}")
+    assert response.status_code == 200
+    assert response.json()["id"] == first_item["id"]
+
+    # test with start_date
+    response = client.get("/orders?start_date=2017-01-01")
+    assert response.status_code == 200
+    assert len(response.json()) == 100
+    from datetime import datetime
+
+    assert (
+        datetime.fromisoformat(response.json()[0]["ordered_at"]).date()
+        == datetime.fromisoformat("2017-01-01").date()
+    )
+
+    # test with start and end date
+    response = client.get("/orders?start_date=2017-01-01&end_date=2017-01-02")
+    assert response.status_code == 200
+    assert len(response.json()) == 40
+    for order in response.json():
+        assert (
+            datetime.fromisoformat(order["ordered_at"]).date()
+            >= datetime.fromisoformat("2017-01-01").date()
+        )
+        assert (
+            datetime.fromisoformat(order["ordered_at"]).date()
+            <= datetime.fromisoformat("2017-01-02").date()
+        )
 
 
 def test_stores_router():
