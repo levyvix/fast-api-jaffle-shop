@@ -1,2 +1,2 @@
-PAGE_SIZE = 100
-BASE_URL = "http://localhost:8000"
+DEFAULT_PAGE_SIZE = 100
+API_V1_PREFIX = "/api/v1"

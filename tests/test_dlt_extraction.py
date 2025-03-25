@@ -15,6 +15,7 @@ from app.main import app
 from dlt.sources.rest_api import rest_api_source
 from dlt.common.destination.dataset import SupportsReadableDataset
 
+from tests.utils import EXPECTED_TABLES_COUNTS_JANUARY_2017
 
 app = TestClient(app)
 
@@ -44,7 +45,7 @@ def test_extract_full_dataset():
     source = rest_api_source(
         {
             "client": {
-                "base_url": "http://localhost:8000",
+                "base_url": "http://localhost:8000/api/v1",
                 "paginator": {
                     "type": "header_link",
                 },
@@ -62,6 +63,7 @@ def test_extract_full_dataset():
                     "endpoint": {
                         "path": "orders",
                         "params": {
+                            "page_size": 1000,
                             "start_date": "2017-01-01",
                             "end_date": "2017-01-31",
                         },
@@ -79,14 +81,7 @@ def test_extract_full_dataset():
     )
 
     pipeline.run(source)
-    assert row_counts(pipeline.dataset()) == {
-        "customers": 935,
-        "products": 10,
-        "stores": 6,
-        "supplies": 65,
-        "orders": 3303,  # 3303 orders in january 2017
-        "orders__items": 5072,
-    }
+    assert row_counts(pipeline.dataset()) == EXPECTED_TABLES_COUNTS_JANUARY_2017
 
 
 @pytest.mark.skip(reason="This is a live test against the deployed shop")

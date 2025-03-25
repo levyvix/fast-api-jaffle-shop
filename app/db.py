@@ -1,7 +1,7 @@
 import duckdb
 import logging
 
-logger = logging.getLogger("fastapi")
+logger = logging.getLogger()
 
 
 POPULATED_DB: duckdb.DuckDBPyConnection | None = None
@@ -27,30 +27,18 @@ def get_db() -> duckdb.DuckDBPyConnection:
         )
         POPULATED_DB = db
 
-        logger.info("Loaded seed data")
-
-        logger.info(
+        logger.warning("Loaded seed data")
+        logger.warning(
             f"Customers: {db.sql('SELECT COUNT(*) FROM customers').fetchone()[0]}"
         )
-        logger.info(db.sql("DESCRIBE customers").fetchall())
-
-        logger.info(f"Orders: {db.sql('SELECT COUNT(*) FROM orders').fetchone()[0]}")
-        logger.info(db.sql("DESCRIBE orders").fetchall())
-
-        logger.info(f"Items: {db.sql('SELECT COUNT(*) FROM items').fetchone()[0]}")
-        logger.info(db.sql("DESCRIBE items").fetchall())
-
-        logger.info(
+        logger.warning(f"Orders: {db.sql('SELECT COUNT(*) FROM orders').fetchone()[0]}")
+        logger.warning(f"Items: {db.sql('SELECT COUNT(*) FROM items').fetchone()[0]}")
+        logger.warning(
             f"Products: {db.sql('SELECT COUNT(*) FROM products').fetchone()[0]}"
         )
-        logger.info(db.sql("DESCRIBE products").fetchall())
-
-        logger.info(f"Stores: {db.sql('SELECT COUNT(*) FROM stores').fetchone()[0]}")
-        logger.info(db.sql("DESCRIBE stores").fetchall())
-
-        logger.info(
+        logger.warning(f"Stores: {db.sql('SELECT COUNT(*) FROM stores').fetchone()[0]}")
+        logger.warning(
             f"Supplies: {db.sql('SELECT COUNT(*) FROM supplies').fetchone()[0]}"
         )
-        logger.info(db.sql("DESCRIBE supplies").fetchall())
 
     return POPULATED_DB
