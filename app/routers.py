@@ -12,6 +12,7 @@ from app.db import get_db
 from app.const import DEFAULT_PAGE_SIZE, API_V1_PREFIX
 from app.models import Customer, Order, Item, Product, Store, Supply
 
+general_router = APIRouter(tags=["general"])
 customers_router = APIRouter(tags=["customers"])
 orders_router = APIRouter(tags=["orders"])
 item_router = APIRouter(tags=["items"])
@@ -79,6 +80,19 @@ def _get_single_response(db: duckdb.DuckDBPyConnection, query: str):
 #
 # Customers
 #
+
+
+@general_router.get("/row-counts")
+async def row_counts(db: duckdb.DuckDBPyConnection = Depends(get_db)):
+    selected_tables = ["customers", "orders", "items", "products", "stores", "supplies"]
+    queries = []
+    for table in selected_tables:
+        queries.append(
+            f"SELECT '{table}' as table_name, COUNT(*) as row_count FROM {table}"
+        )
+
+    query = " UNION ALL ".join(queries)
+    return _get_list_response(db, query)
 
 
 @customers_router.get("/customers", response_model=List[Customer])

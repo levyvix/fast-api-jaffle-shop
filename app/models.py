@@ -9,6 +9,10 @@ from decimal import Decimal
 from datetime import datetime
 
 
+class Message(BaseModel):
+    message: str
+
+
 class Customer(BaseModel):
     id: str
     name: str
@@ -42,7 +46,7 @@ class Order(BaseModel):
 class Product(BaseModel):
     sku: str
     name: str
-    sku: str
+    type: str
     price: Decimal
     description: str
 

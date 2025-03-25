@@ -9,6 +9,26 @@ from tests.utils import EXPECTED_TABLES_COUNTS_ALL, PRIMARY_KEYS
 client = TestClient(app)
 
 
+def test_ping_router():
+    response = client.get("/ping")
+    assert response.status_code == 200
+    assert response.json() == {"message": "pong"}
+
+
+def test_row_counts_router():
+    response = client.get(API_V1_PREFIX + "/row-counts")
+    assert response.status_code == 200
+    assert len(response.json()) == 6
+    assert response.json() == [
+        {"table_name": "customers", "row_count": 935},
+        {"table_name": "orders", "row_count": 61948},
+        {"table_name": "items", "row_count": 90900},
+        {"table_name": "products", "row_count": 10},
+        {"table_name": "stores", "row_count": 6},
+        {"table_name": "supplies", "row_count": 65},
+    ]
+
+
 def test_customers_router():
     # simple collection test
     response = client.get(API_V1_PREFIX + "/customers")
