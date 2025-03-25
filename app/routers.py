@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Response, Request
 
 from app.db import get_db
 from app.const import DEFAULT_PAGE_SIZE, API_V1_PREFIX
-from app.models import Customer
+from app.models import Customer, Order, Item, Product, Store, Supply
 
 customers_router = APIRouter(tags=["customers"])
 orders_router = APIRouter(tags=["orders"])
@@ -124,7 +124,7 @@ def _enrich_orders(db: duckdb.DuckDBPyConnection, orders: list[dict]):
     return orders
 
 
-@orders_router.get("/orders")
+@orders_router.get("/orders", response_model=List[Order])
 async def get_orders(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
@@ -153,15 +153,17 @@ async def get_orders(
     return _enrich_orders(db, orders)
 
 
-@orders_router.get("/orders/{order_id}")
+@orders_router.get("/orders/{order_id}", response_model=Order)
 async def get_order(order_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
-    return _get_single_response(db, f"SELECT * FROM orders WHERE id = '{order_id}'")
+    return _enrich_orders(
+        db, [_get_single_response(db, f"SELECT * FROM orders WHERE id = '{order_id}'")]
+    )[0]
 
 
 #
 # Items
 #
-@item_router.get("/items")
+@item_router.get("/items", response_model=List[Item])
 async def get_items(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
@@ -179,7 +181,7 @@ async def get_items(
     )
 
 
-@item_router.get("/items/{item_id}")
+@item_router.get("/items/{item_id}", response_model=Item)
 async def get_item(item_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     return _get_single_response(db, f"SELECT * FROM items WHERE id = '{item_id}'")
 
@@ -187,7 +189,7 @@ async def get_item(item_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 #
 # Products
 #
-@product_router.get("/products")
+@product_router.get("/products", response_model=List[Product])
 async def get_products(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
@@ -205,7 +207,7 @@ async def get_products(
     )
 
 
-@product_router.get("/products/{sku}")
+@product_router.get("/products/{sku}", response_model=Product)
 async def get_product(sku: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     return _get_single_response(db, f"SELECT * FROM products WHERE sku = '{sku}'")
 
@@ -213,7 +215,7 @@ async def get_product(sku: str, db: duckdb.DuckDBPyConnection = Depends(get_db))
 #
 # Stores
 #
-@store_router.get("/stores")
+@store_router.get("/stores", response_model=List[Store])
 async def get_stores(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
@@ -231,7 +233,7 @@ async def get_stores(
     )
 
 
-@store_router.get("/stores/{store_id}")
+@store_router.get("/stores/{store_id}", response_model=Store)
 async def get_store(store_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     return _get_single_response(db, f"SELECT * FROM stores WHERE id = '{store_id}'")
 
@@ -239,7 +241,7 @@ async def get_store(store_id: str, db: duckdb.DuckDBPyConnection = Depends(get_d
 #
 # Supplies
 #
-@supplies_router.get("/supplies")
+@supplies_router.get("/supplies", response_model=List[Supply])
 async def get_supplies(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
@@ -257,6 +259,6 @@ async def get_supplies(
     )
 
 
-@supplies_router.get("/supplies/{supply_id}")
+@supplies_router.get("/supplies/{supply_id}", response_model=Supply)
 async def get_supply(supply_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     return _get_single_response(db, f"SELECT * FROM supplies WHERE id = '{supply_id}'")
