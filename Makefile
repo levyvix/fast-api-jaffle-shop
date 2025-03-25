@@ -17,6 +17,9 @@ format:
 test:
 	uv run pytest
 
+test-fast:
+	uv run pytest tests/test_routers.py -v -m "not slow"
+
 freeze-requirements:
 	uv sync --no-dev
 	uv pip freeze > requirements.txt

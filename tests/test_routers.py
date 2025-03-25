@@ -116,9 +116,17 @@ def test_supplies_router():
 
 
 @pytest.mark.parametrize(
-    "table_name", ["customers", "products", "stores", "supplies"]
-)  # , "orders", "items"])
-@pytest.mark.parametrize("page_size", [None, 500])
+    "table_name",
+    [
+        "customers",
+        "products",
+        "stores",
+        "supplies",
+        pytest.param("orders", marks=pytest.mark.slow),
+        pytest.param("items", marks=pytest.mark.slow),
+    ],
+)
+@pytest.mark.parametrize("page_size", [None, 500, 5000])
 def test_pagination(table_name, page_size):
     expected_page_size = page_size or DEFAULT_PAGE_SIZE
     current_page = 1

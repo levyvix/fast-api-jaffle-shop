@@ -8,6 +8,20 @@ When the API is running, docs are available at /docs. For all entities, there ar
 
 This project requires python 3.10+ and uv to be installed.
 
+## Run tests
+
+Some tests are quite slow as the dataset is quite large. To run the tests faster, use the following command:
+
+```bash
+make test-fast
+```
+
+All tests can be run with:
+
+```bash
+make test
+```
+
 ## Run dev with reload
 
 ```bash
