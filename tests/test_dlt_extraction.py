@@ -3,18 +3,15 @@ This tests extracts the full dataset with the dlt rest_api source
 # NOTE: for speed reasons we limit to orders in january 2017
 """
 
-import pytest
-
 import dlt
-from dlt.destinations import duckdb
-
+import pytest
 import requests
-from fastapi.testclient import TestClient
-from app.main import app
-
-from dlt.sources.rest_api import rest_api_source
 from dlt.common.destination.dataset import SupportsReadableDataset
+from dlt.destinations import duckdb
+from dlt.sources.rest_api import rest_api_source
+from fastapi.testclient import TestClient
 
+from app.main import app
 from tests.utils import EXPECTED_TABLES_COUNTS_JANUARY_2017
 
 app = TestClient(app)
@@ -32,9 +29,13 @@ class FastAPISession(requests.Session):
 
 
 def row_counts(
-    dataset: SupportsReadableDataset, tables: list[str] = None
+    dataset: SupportsReadableDataset, tables: list[str] = []
 ) -> dict[str, int]:
-    counts = dataset.row_counts(table_names=tables).arrow().to_pydict()
+    counts = dataset.row_counts(table_names=tables).arrow()
+    if counts is None:
+        return {}
+
+    counts = counts.to_pydict()
     return {t: c for t, c in zip(counts["table_name"], counts["row_count"])}
 
 

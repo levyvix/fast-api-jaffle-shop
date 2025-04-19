@@ -2,15 +2,15 @@
 All jaffle shop routers for api v1
 """
 
-from typing import List
+from typing import List, Optional
+from urllib.parse import urlencode
 
 import duckdb
-from urllib.parse import urlencode
-from fastapi import APIRouter, Depends, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from app.const import API_V1_PREFIX, DEFAULT_PAGE_SIZE
 from app.db import get_db
-from app.const import DEFAULT_PAGE_SIZE, API_V1_PREFIX
-from app.models import Customer, Order, Item, Product, Store, Supply
+from app.models import Customer, Item, Order, Product, Store, Supply
 
 general_router = APIRouter(tags=["general"])
 customers_router = APIRouter(tags=["customers"])
@@ -34,8 +34,8 @@ def _get_paged_response(
     db: duckdb.DuckDBPyConnection,
     request: Request,
     table_name: str,
+    response: Response,
     page: int = 1,
-    response: Response = None,
     where_clause: str = "",
     sort_by: str = "",
     page_size: int = DEFAULT_PAGE_SIZE,
@@ -47,18 +47,17 @@ def _get_paged_response(
 
     offset = (page - 1) * page_size
     last_item = offset + page_size
-    count = db.query(f"SELECT COUNT(*) FROM {table_name} {where_clause}").fetchone()[0]
+    count = db.query(f"SELECT COUNT(*) FROM {table_name} {where_clause}").fetchone()
+    if count is None:
+        return []
 
-    # get base url from request
-    # forwarded_host = request.headers.get(
-    #     "X-Forwarded-Host", request.headers.get("Host")
-    # )
-    # scheme = request.headers.get("X-Forwarded-Proto", "http")
+    count = count[0]
 
     url = API_V1_PREFIX + f"/{table_name}"
     query_params = dict(request.query_params)
     if last_item < count and response:
-        query_params["page"] = page + 1
+        page_number = int(query_params.get("page", 1))
+        query_params["page"] = str(page_number + 1)
         next_link = f'<{url}?{urlencode(query_params)}>; rel="next"'
         response.headers["Link"] = next_link
 
@@ -74,7 +73,10 @@ def _get_single_response(db: duckdb.DuckDBPyConnection, query: str):
     """
     cursor = db.sql(query)
     column_names = [desc[0] for desc in cursor.description]
-    return dict(zip(column_names, cursor.fetchone()))
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    return dict(zip(column_names, row))
 
 
 #
@@ -99,10 +101,14 @@ async def row_counts(db: duckdb.DuckDBPyConnection = Depends(get_db)):
 async def get_customers(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
-    response: Response = None,
-    request: Request = None,
+    response: Response | None = None,
+    request: Request | None = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
+    if request is None:
+        raise HTTPException(status_code=400, detail="Request is required")
+    if response is None:
+        raise HTTPException(status_code=400, detail="Response is required")
     return _get_paged_response(
         db=db,
         request=request,
@@ -142,12 +148,17 @@ def _enrich_orders(db: duckdb.DuckDBPyConnection, orders: list[dict]):
 async def get_orders(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
-    start_date: str = None,
-    end_date: str = None,
-    response: Response = None,
-    request: Request = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    response: Response | None = None,
+    request: Request | None = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
+    if request is None:
+        raise HTTPException(status_code=400, detail="Request is required")
+    if response is None:
+        raise HTTPException(status_code=400, detail="Response is required")
+
     where_clause = ""
     if start_date:
         where_clause += f" AND ordered_at::DATE >= '{start_date}'"
@@ -170,7 +181,16 @@ async def get_orders(
 @orders_router.get("/orders/{order_id}", response_model=Order)
 async def get_order(order_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     return _enrich_orders(
-        db, [_get_single_response(db, f"SELECT * FROM orders WHERE id = '{order_id}'")]
+        db,
+        [
+            order
+            for order in [
+                _get_single_response(
+                    db, f"SELECT * FROM orders WHERE id = '{order_id}'"
+                )
+            ]
+            if order is not None
+        ],
     )[0]
 
 
@@ -181,10 +201,14 @@ async def get_order(order_id: str, db: duckdb.DuckDBPyConnection = Depends(get_d
 async def get_items(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
-    response: Response = None,
-    request: Request = None,
+    response: Response | None = None,
+    request: Request | None = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
+    if request is None:
+        raise HTTPException(status_code=400, detail="Request is required")
+    if response is None:
+        raise HTTPException(status_code=400, detail="Response is required")
     return _get_paged_response(
         db=db,
         request=request,
@@ -207,10 +231,14 @@ async def get_item(item_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 async def get_products(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
-    response: Response = None,
-    request: Request = None,
+    response: Response | None = None,
+    request: Request | None = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
+    if request is None:
+        raise HTTPException(status_code=400, detail="Request is required")
+    if response is None:
+        raise HTTPException(status_code=400, detail="Response is required")
     return _get_paged_response(
         db=db,
         request=request,
@@ -233,10 +261,14 @@ async def get_product(sku: str, db: duckdb.DuckDBPyConnection = Depends(get_db))
 async def get_stores(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
-    response: Response = None,
-    request: Request = None,
+    response: Response | None = None,
+    request: Request | None = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
+    if request is None:
+        raise HTTPException(status_code=400, detail="Request is required")
+    if response is None:
+        raise HTTPException(status_code=400, detail="Response is required")
     return _get_paged_response(
         db=db,
         request=request,
@@ -259,10 +291,14 @@ async def get_store(store_id: str, db: duckdb.DuckDBPyConnection = Depends(get_d
 async def get_supplies(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
-    response: Response = None,
-    request: Request = None,
+    response: Response | None = None,
+    request: Request | None = None,
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
+    if request is None:
+        raise HTTPException(status_code=400, detail="Request is required")
+    if response is None:
+        raise HTTPException(status_code=400, detail="Response is required")
     return _get_paged_response(
         db=db,
         request=request,
